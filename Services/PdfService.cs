@@ -1,6 +1,4 @@
-﻿using Azure.Storage.Blobs;
-using Azure.Storage.Blobs.Models;
-using Docnet.Core;
+﻿using Docnet.Core;
 using Docnet.Core.Models;
 using PdfSharpCore.Pdf;
 using PdfSharpCore.Pdf.IO;
@@ -11,74 +9,53 @@ namespace PdfManager.Services
     public class PdfService
     {
         private readonly IWebHostEnvironment _env;
-        private readonly IConfiguration _configuration;
-        private readonly BlobContainerClient _containerClient;
 
-        public PdfService(IWebHostEnvironment env, IConfiguration configuration)
+        public PdfService(IWebHostEnvironment env)
         {
             _env = env;
-            _configuration = configuration;
-
-            var connectionString = configuration["AzureStorage__ConnectionString"]
-                ?? configuration["AzureStorage:ConnectionString"]
-                ?? throw new InvalidOperationException(
-                    "Azure Storage connection string not found!");
-
-            var containerName = configuration["AzureStorage:ContainerName"] ?? "uploads";
-
-            _containerClient = new BlobContainerClient(connectionString, containerName);
-            _containerClient.CreateIfNotExists(PublicAccessType.Blob);
         }
 
         // ─────────────────────────────────────
-        // Upload PDF to Azure Blob Storage
+        // Get uploads folder path
         // ─────────────────────────────────────
-        public async Task<string> UploadToBlob(IFormFile file)
+        private string GetUploadsPath()
+        {
+            // Azure pe temp folder use karo
+            var tempPath = Path.Combine(Path.GetTempPath(), "PdfUploads");
+            Directory.CreateDirectory(tempPath);
+            return tempPath;
+        }
+
+        // ─────────────────────────────────────
+        // Save uploaded file
+        // ─────────────────────────────────────
+        public async Task<string> SaveFile(IFormFile file)
         {
             var uniqueFileName = Guid.NewGuid().ToString() + "_" + file.FileName;
-            var blobClient = _containerClient.GetBlobClient(uniqueFileName);
+            var filePath = Path.Combine(GetUploadsPath(), uniqueFileName);
 
-            using var stream = file.OpenReadStream();
-            await blobClient.UploadAsync(stream, new BlobHttpHeaders
-            {
-                ContentType = "application/pdf"
-            });
+            using var stream = new FileStream(filePath, FileMode.Create);
+            await file.CopyToAsync(stream);
 
             return uniqueFileName;
         }
 
         // ─────────────────────────────────────
-        // Download PDF from Blob to temp path
+        // Get file path
         // ─────────────────────────────────────
-        public async Task<string> DownloadToTemp(string fileName)
+        public string GetFilePath(string fileName)
         {
-            var tempPath = Path.Combine(Path.GetTempPath(), fileName);
-
-            if (!File.Exists(tempPath))
-            {
-                var blobClient = _containerClient.GetBlobClient(fileName);
-                await blobClient.DownloadToAsync(tempPath);
-            }
-
-            return tempPath;
+            return Path.Combine(GetUploadsPath(), fileName);
         }
 
         // ─────────────────────────────────────
-        // Delete PDF from Blob
+        // Delete file
         // ─────────────────────────────────────
-        public async Task DeleteFromBlob(string fileName)
+        public void DeleteFile(string fileName)
         {
-            var blobClient = _containerClient.GetBlobClient(fileName);
-            await blobClient.DeleteIfExistsAsync();
-        }
-
-        // ─────────────────────────────────────
-        // Get Blob URL for PDF viewer
-        // ─────────────────────────────────────
-        public string GetBlobUrl(string fileName)
-        {
-            var blobClient = _containerClient.GetBlobClient(fileName);
-            return blobClient.Uri.ToString();
+            var filePath = GetFilePath(fileName);
+            if (File.Exists(filePath))
+                File.Delete(filePath);
         }
 
         // ─────────────────────────────────────
@@ -113,13 +90,23 @@ namespace PdfManager.Services
         }
 
         // ─────────────────────────────────────
+        // Get Total Pages
+        // ─────────────────────────────────────
+        public int GetTotalPages(string fileName)
+        {
+            var filePath = GetFilePath(fileName);
+            using var doc = PdfReader.Open(filePath, PdfDocumentOpenMode.InformationOnly);
+            return doc.PageCount;
+        }
+
+        // ─────────────────────────────────────
         // Extract Pages → New PDF bytes
         // ─────────────────────────────────────
-        public async Task<byte[]> ExtractPages(string fileName, List<int> pageNumbers)
+        public byte[] ExtractPages(string fileName, List<int> pageNumbers)
         {
-            var tempPath = await DownloadToTemp(fileName);
+            var filePath = GetFilePath(fileName);
 
-            using var inputDoc = PdfReader.Open(tempPath, PdfDocumentOpenMode.Import);
+            using var inputDoc = PdfReader.Open(filePath, PdfDocumentOpenMode.Import);
             using var outputDoc = new PdfDocument();
 
             foreach (var pageNum in pageNumbers)
@@ -131,29 +118,19 @@ namespace PdfManager.Services
         }
 
         // ─────────────────────────────────────
-        // Get Total Pages
-        // ─────────────────────────────────────
-        public async Task<int> GetTotalPages(string fileName)
-        {
-            var tempPath = await DownloadToTemp(fileName);
-            using var doc = PdfReader.Open(tempPath, PdfDocumentOpenMode.InformationOnly);
-            return doc.PageCount;
-        }
-
-        // ─────────────────────────────────────
         // Convert Page to Image (PNG)
         // ─────────────────────────────────────
-        public async Task<byte[]> ConvertPageToImage(string fileName,
+        public byte[] ConvertPageToImage(string fileName,
             int pageNumber, int dpi = 150)
         {
-            var tempPath = await DownloadToTemp(fileName);
+            var filePath = GetFilePath(fileName);
 
             using var library = DocLib.Instance;
             int width = (int)(8.27 * dpi);
             int height = (int)(11.69 * dpi);
 
             using var docReader = library.GetDocReader(
-                tempPath, new PageDimensions(width, height));
+                filePath, new PageDimensions(width, height));
             using var pageReader = docReader.GetPageReader(pageNumber - 1);
 
             var actualWidth = pageReader.GetPageWidth();
@@ -195,8 +172,7 @@ namespace PdfManager.Services
         // ─────────────────────────────────────
         // Convert Multiple Pages → ZIP
         // ─────────────────────────────────────
-        public async Task<byte[]> ConvertPagesToZip(string fileName,
-            List<int> pageNumbers)
+        public byte[] ConvertPagesToZip(string fileName, List<int> pageNumbers)
         {
             using var ms = new MemoryStream();
             using var archive = new System.IO.Compression.ZipArchive(
@@ -204,7 +180,7 @@ namespace PdfManager.Services
 
             foreach (var pageNum in pageNumbers)
             {
-                var imgBytes = await ConvertPageToImage(fileName, pageNum);
+                var imgBytes = ConvertPageToImage(fileName, pageNum);
                 var entry = archive.CreateEntry($"page_{pageNum}.png",
                     System.IO.Compression.CompressionLevel.Fastest);
 

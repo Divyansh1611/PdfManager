@@ -21,7 +21,7 @@ namespace PdfManager.Controllers
             return View();
         }
 
-        // POST - Handle Upload → Azure Blob
+        // POST - Handle Upload
         [HttpPost]
         public async Task<IActionResult> Upload(PdfUploadModel model)
         {
@@ -44,9 +44,7 @@ namespace PdfManager.Controllers
                 return RedirectToAction("Index");
             }
 
-            // ✅ Azure Blob mein upload karo
-            var uniqueFileName = await _pdfService.UploadToBlob(model.PdfFile);
-
+            var uniqueFileName = await _pdfService.SaveFile(model.PdfFile);
             HttpContext.Session.SetString("UploadedPdf", uniqueFileName);
             TempData["Success"] = "PDF uploaded successfully!";
 
@@ -54,26 +52,34 @@ namespace PdfManager.Controllers
         }
 
         // GET - PDF Viewer
-        public async Task<IActionResult> Viewer()
+        public IActionResult Viewer()
         {
             var fileName = HttpContext.Session.GetString("UploadedPdf");
             if (string.IsNullOrEmpty(fileName))
                 return RedirectToAction("Index");
 
-            // ✅ Blob URL pass karo viewer ko
             ViewBag.FileName = fileName;
-            ViewBag.PdfUrl = _pdfService.GetBlobUrl(fileName);
             return View();
         }
 
+        // GET - Serve PDF file
+        public IActionResult GetPdf(string fileName)
+        {
+            var filePath = _pdfService.GetFilePath(fileName);
+            if (!System.IO.File.Exists(filePath))
+                return NotFound();
+
+            return PhysicalFile(filePath, "application/pdf");
+        }
+
         // GET - Extract Page UI
-        public async Task<IActionResult> Extract()
+        public IActionResult Extract()
         {
             var fileName = HttpContext.Session.GetString("UploadedPdf");
             if (string.IsNullOrEmpty(fileName))
                 return RedirectToAction("Index");
 
-            var totalPages = await _pdfService.GetTotalPages(fileName);
+            var totalPages = _pdfService.GetTotalPages(fileName);
             ViewBag.FileName = fileName;
             ViewBag.TotalPages = totalPages;
 
@@ -82,13 +88,13 @@ namespace PdfManager.Controllers
 
         // POST - Extract Pages
         [HttpPost]
-        public async Task<IActionResult> DoExtract(string pageInput)
+        public IActionResult DoExtract(string pageInput)
         {
             var fileName = HttpContext.Session.GetString("UploadedPdf");
             if (string.IsNullOrEmpty(fileName))
                 return RedirectToAction("Index");
 
-            var totalPages = await _pdfService.GetTotalPages(fileName);
+            var totalPages = _pdfService.GetTotalPages(fileName);
             var pageNumbers = _pdfService.ParsePageNumbers(pageInput, totalPages);
 
             if (pageNumbers.Count == 0)
@@ -97,31 +103,31 @@ namespace PdfManager.Controllers
                 return RedirectToAction("Extract");
             }
 
-            var pdfBytes = await _pdfService.ExtractPages(fileName, pageNumbers);
+            var pdfBytes = _pdfService.ExtractPages(fileName, pageNumbers);
             return File(pdfBytes, "application/pdf",
                 $"extracted_pages_{string.Join("-", pageNumbers)}.pdf");
         }
 
         // GET - Screenshot Single Page
-        public async Task<IActionResult> Screenshot(int pageNum)
+        public IActionResult Screenshot(int pageNum)
         {
             var fileName = HttpContext.Session.GetString("UploadedPdf");
             if (string.IsNullOrEmpty(fileName))
                 return RedirectToAction("Index");
 
-            var imgBytes = await _pdfService.ConvertPageToImage(fileName, pageNum);
+            var imgBytes = _pdfService.ConvertPageToImage(fileName, pageNum);
             return File(imgBytes, "image/png", $"page_{pageNum}.png");
         }
 
         // POST - Screenshot Multiple Pages
         [HttpPost]
-        public async Task<IActionResult> ScreenshotMultiple(string pageInput)
+        public IActionResult ScreenshotMultiple(string pageInput)
         {
             var fileName = HttpContext.Session.GetString("UploadedPdf");
             if (string.IsNullOrEmpty(fileName))
                 return RedirectToAction("Index");
 
-            var totalPages = await _pdfService.GetTotalPages(fileName);
+            var totalPages = _pdfService.GetTotalPages(fileName);
             var pageNumbers = _pdfService.ParsePageNumbers(pageInput, totalPages);
 
             if (pageNumbers.Count == 0)
@@ -132,25 +138,24 @@ namespace PdfManager.Controllers
 
             if (pageNumbers.Count == 1)
             {
-                var imgBytes = await _pdfService.ConvertPageToImage(
+                var imgBytes = _pdfService.ConvertPageToImage(
                     fileName, pageNumbers[0]);
                 return File(imgBytes, "image/png",
                     $"page_{pageNumbers[0]}.png");
             }
 
-            var zipBytes = await _pdfService.ConvertPagesToZip(fileName, pageNumbers);
+            var zipBytes = _pdfService.ConvertPagesToZip(fileName, pageNumbers);
             return File(zipBytes, "application/zip",
                 $"pages_{string.Join("-", pageNumbers)}.zip");
         }
 
         // GET - Delete PDF
-        public async Task<IActionResult> Delete()
+        public IActionResult Delete()
         {
             var fileName = HttpContext.Session.GetString("UploadedPdf");
             if (!string.IsNullOrEmpty(fileName))
             {
-                // ✅ Blob se delete karo
-                await _pdfService.DeleteFromBlob(fileName);
+                _pdfService.DeleteFile(fileName);
                 HttpContext.Session.Remove("UploadedPdf");
             }
 

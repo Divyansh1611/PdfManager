@@ -219,7 +219,7 @@
 
         // PDF URL
         // const pdfUrl = encodeURI('/uploads/@fileName');
-        const pdfUrl = '@ViewBag.PdfUrl';
+        const pdfUrl = '/Pdf/GetPdf?fileName=@ViewBag.FileName';
 
         let pdfDoc = null;
         let currentPage = 1;
