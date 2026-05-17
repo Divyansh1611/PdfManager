@@ -1,0 +1,461 @@
+﻿@{
+    Layout = null;
+    ViewData["Title"] = "Extract Pages";
+    var fileName = ViewBag.FileName as string;
+    var totalPages = ViewBag.TotalPages;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Extract Pages</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+          rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', sans-serif;
+            color: white;
+        }
+
+        .top-bar {
+            background: rgba(22, 33, 62, 0.95);
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid #0d6efd;
+            backdrop-filter: blur(10px);
+        }
+
+            .top-bar .title {
+                font-size: 18px;
+                font-weight: 700;
+                color: #4dabf7;
+            }
+
+        .main {
+            max-width: 720px;
+            margin: 48px auto;
+            padding: 0 16px;
+        }
+
+        .card {
+            background: rgba(22, 33, 62, 0.95);
+            border: 1px solid rgba(13, 110, 253, 0.3);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+        }
+
+            .card h4 {
+                font-size: 24px;
+                font-weight: 700;
+                color: #e9ecef;
+                text-align: center;
+                margin-bottom: 8px;
+            }
+
+            .card .subtitle {
+                color: #868e96;
+                text-align: center;
+                font-size: 14px;
+                margin-bottom: 28px;
+            }
+
+        .page-stats {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-bottom: 24px;
+        }
+
+        .stat-badge {
+            background: rgba(13, 110, 253, 0.15);
+            border: 1px solid rgba(13, 110, 253, 0.4);
+            border-radius: 12px;
+            padding: 10px 20px;
+            text-align: center;
+        }
+
+            .stat-badge .num {
+                font-size: 24px;
+                font-weight: 700;
+                color: #4dabf7;
+            }
+
+            .stat-badge .label {
+                font-size: 11px;
+                color: #868e96;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            }
+
+        .page-input {
+            background: rgba(15, 52, 96, 0.5);
+            border: 2px solid rgba(13, 110, 253, 0.4);
+            color: white;
+            border-radius: 14px;
+            padding: 16px 20px;
+            font-size: 20px;
+            width: 100%;
+            text-align: center;
+            letter-spacing: 3px;
+            transition: 0.3s;
+        }
+
+            .page-input:focus {
+                outline: none;
+                border-color: #4dabf7;
+                box-shadow: 0 0 0 4px rgba(13,110,253,0.2);
+                background: rgba(15, 52, 96, 0.8);
+            }
+
+            .page-input::placeholder {
+                color: #495057;
+                letter-spacing: 0;
+                font-size: 15px;
+            }
+
+        .examples {
+            margin: 20px 0;
+        }
+
+            .examples .label {
+                font-size: 12px;
+                color: #868e96;
+                margin-bottom: 10px;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            }
+
+        .example-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .example-tag {
+            background: rgba(13, 110, 253, 0.1);
+            border: 1px solid rgba(13, 110, 253, 0.3);
+            color: #74c0fc;
+            border-radius: 20px;
+            padding: 6px 16px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+            .example-tag:hover {
+                background: rgba(13, 110, 253, 0.25);
+                border-color: #4dabf7;
+            }
+
+        .preview-section {
+            margin: 20px 0;
+        }
+
+        .preview-label {
+            font-size: 12px;
+            color: #868e96;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .preview-box {
+            background: rgba(15, 52, 96, 0.3);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 16px;
+            min-height: 56px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .page-badge {
+            background: linear-gradient(135deg, #0d6efd, #0a58ca);
+            color: white;
+            border-radius: 8px;
+            padding: 5px 12px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .preview-empty {
+            color: #495057;
+            font-size: 14px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .selected-count {
+            font-size: 13px;
+            color: #51cf66;
+            margin-top: 8px;
+        }
+
+        .btn-group-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .btn-extract {
+            flex: 1;
+            padding: 14px;
+            background: linear-gradient(135deg, #0d6efd, #0a58ca);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+            .btn-extract:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 24px rgba(13,110,253,0.4);
+            }
+
+        .btn-screenshot {
+            flex: 1;
+            padding: 14px;
+            background: linear-gradient(135deg, #2f9e44, #2b8a3e);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+            .btn-screenshot:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 24px rgba(47,158,68,0.4);
+            }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 24px;
+        }
+
+            .footer-links a {
+                color: #868e96;
+                font-size: 13px;
+                text-decoration: none;
+                transition: 0.2s;
+            }
+
+                .footer-links a:hover {
+                    color: #4dabf7;
+                }
+
+        .alert-danger-custom {
+            background: rgba(220, 53, 69, 0.15);
+            border: 1px solid rgba(220, 53, 69, 0.4);
+            color: #ea868f;
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Bar -->
+    <div class="top-bar">
+        <div style="display:flex; align-items:center; gap:12px">
+            <span class="title">✂️ Extract Pages</span>
+            <span style="color:#495057; font-size:13px">@fileName</span>
+        </div>
+        <a href="/Pdf/Viewer" class="btn btn-sm btn-outline-light">
+            👁️ Back to Viewer
+        </a>
+    </div>
+
+    <div class="main">
+        <div class="card">
+
+            <h4>Select Pages to Extract</h4>
+            <p class="subtitle">Enter page numbers or ranges to extract or screenshot</p>
+
+            <!-- Stats -->
+            <div class="page-stats">
+                <div class="stat-badge">
+                    <div class="num">@totalPages</div>
+                    <div class="label">Total Pages</div>
+                </div>
+                <div class="stat-badge">
+                    <div class="num" id="selectedCount">0</div>
+                    <div class="label">Selected</div>
+                </div>
+            </div>
+
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert-danger-custom">❌ @TempData["Error"]</div>
+            }
+
+            <!-- Page Input -->
+            <input type="text"
+                   class="page-input"
+                   id="pageInput"
+                   placeholder="e.g.  1, 3, 5-8, 10"
+                   oninput="previewPages(this.value)"
+                   autocomplete="off">
+
+            <!-- Examples -->
+            <div class="examples">
+                <div class="label">Quick select</div>
+                <div class="example-tags">
+                    <span class="example-tag" onclick="setInput('1')">📄 Page 1</span>
+                    <span class="example-tag" onclick="setInput('1-3')">📄 Pages 1–3</span>
+                    <span class="example-tag" onclick="setInput('1,2,3')">📄 1, 2, 3</span>
+                    <span class="example-tag"
+                          onclick="setInput('1-@totalPages')">📄 All Pages</span>
+                    <span class="example-tag"
+                          onclick="setInputOdd(@totalPages)">📄 Odd Pages</span>
+                    <span class="example-tag"
+                          onclick="setInputEven(@totalPages)">📄 Even Pages</span>
+                </div>
+            </div>
+
+            <!-- Preview -->
+            <div class="preview-section">
+                <div class="preview-label">Selected Pages Preview</div>
+                <div class="preview-box" id="previewBox">
+                    <span class="preview-empty">Type above to preview pages...</span>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <form id="extractForm" action="/Pdf/DoExtract" method="post">
+                <input type="hidden" name="pageInput" id="extractInput">
+            </form>
+
+            <form id="screenshotForm" action="/Pdf/ScreenshotMultiple" method="post">
+                <input type="hidden" name="pageInput" id="screenshotInput">
+            </form>
+
+            <div class="btn-group-actions">
+                <button class="btn-extract" onclick="submitExtract()">
+                    ⬇️ Download PDF
+                </button>
+                <button class="btn-screenshot" onclick="submitScreenshot()">
+                    📸 Download Image
+                </button>
+            </div>
+
+            <div class="footer-links">
+                <a href="/Pdf/Viewer">👁️ Back to Viewer</a>
+                <a href="/Pdf/Index">⬆️ Upload New PDF</a>
+                <a href="/Pdf/Delete"
+                   onclick="return confirm('Delete this PDF from server?')">
+                    🗑️ Delete PDF
+                </a>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const totalPages = @totalPages;
+
+        function setInput(val) {
+            document.getElementById('pageInput').value = val;
+            previewPages(val);
+        }
+
+        function setInputOdd(total) {
+            const odds = [];
+            for (let i = 1; i <= total; i += 2) odds.push(i);
+            setInput(odds.join(','));
+        }
+
+        function setInputEven(total) {
+            const evens = [];
+            for (let i = 2; i <= total; i += 2) evens.push(i);
+            setInput(evens.join(','));
+        }
+
+        function parsePages(input) {
+            const pages = new Set();
+            const parts = input.split(',');
+            for (let part of parts) {
+                part = part.trim();
+                if (part.includes('-')) {
+                    const [start, end] = part.split('-').map(Number);
+                    if (!isNaN(start) && !isNaN(end)) {
+                        for (let i = start; i <= end; i++) {
+                            if (i >= 1 && i <= totalPages) pages.add(i);
+                        }
+                    }
+                } else {
+                    const num = parseInt(part);
+                    if (!isNaN(num) && num >= 1 && num <= totalPages)
+                        pages.add(num);
+                }
+            }
+            return [...pages].sort((a, b) => a - b);
+        }
+
+        function previewPages(input) {
+            const box = document.getElementById('previewBox');
+            const countEl = document.getElementById('selectedCount');
+
+            if (!input.trim()) {
+                box.innerHTML = '<span class="preview-empty">Type above to preview pages...</span>';
+                countEl.textContent = '0';
+                return;
+            }
+
+            const pages = parsePages(input);
+            countEl.textContent = pages.length;
+
+            if (pages.length === 0) {
+                box.innerHTML = '<span class="preview-empty" style="color:#ea868f">❌ No valid pages found</span>';
+                return;
+            }
+
+            box.innerHTML = pages.map(p =>
+                `<span class="page-badge">📄 ${p}</span>`
+            ).join('') +
+                `<div style="width:100%; margin-top:8px">
+                        <span style="color:#51cf66; font-size:13px">
+                            ✅ ${pages.length} page(s) selected
+                        </span>
+                    </div>`;
+        }
+
+        function submitExtract() {
+            const val = document.getElementById('pageInput').value;
+            if (!val.trim()) { alert('Please enter page numbers!'); return; }
+            document.getElementById('extractInput').value = val;
+            document.getElementById('extractForm').submit();
+        }
+
+        function submitScreenshot() {
+            const val = document.getElementById('pageInput').value;
+            if (!val.trim()) { alert('Please enter page numbers!'); return; }
+            document.getElementById('screenshotInput').value = val;
+            document.getElementById('screenshotForm').submit();
+        }
+    </script>
+
+</body>
+</html>

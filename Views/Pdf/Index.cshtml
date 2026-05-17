@@ -1,0 +1,334 @@
+﻿@model PdfManager.Models.PdfUploadModel
+@{
+    Layout = null;
+    ViewData["Title"] = "PDF Manager";
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PDF Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+          rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .brand {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+            .brand h1 {
+                font-size: 42px;
+                font-weight: 800;
+                background: linear-gradient(90deg, #4dabf7, #74c0fc, #a5d8ff);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                letter-spacing: -1px;
+            }
+
+            .brand p {
+                color: #868e96;
+                font-size: 15px;
+                margin-top: 6px;
+            }
+
+        .card {
+            background: rgba(22, 33, 62, 0.95);
+            border: 1px solid rgba(13, 110, 253, 0.3);
+            border-radius: 20px;
+            padding: 40px;
+            width: 100%;
+            max-width: 560px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            backdrop-filter: blur(10px);
+        }
+
+        .upload-zone {
+            border: 2px dashed rgba(13, 110, 253, 0.5);
+            border-radius: 16px;
+            padding: 48px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(13, 110, 253, 0.05);
+            position: relative;
+        }
+
+            .upload-zone:hover, .upload-zone.dragover {
+                border-color: #4dabf7;
+                background: rgba(13, 110, 253, 0.12);
+                transform: translateY(-2px);
+            }
+
+        .upload-icon {
+            font-size: 56px;
+            margin-bottom: 16px;
+            display: block;
+        }
+
+        .upload-zone h5 {
+            color: #e9ecef;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .upload-zone p {
+            color: #868e96;
+            font-size: 14px;
+            margin: 0;
+        }
+
+        .file-info {
+            background: rgba(13, 110, 253, 0.1);
+            border: 1px solid rgba(13, 110, 253, 0.3);
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-top: 16px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            color: #74c0fc;
+            font-size: 14px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #0d6efd, #0a58ca);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s;
+            letter-spacing: 0.5px;
+        }
+
+            .submit-btn:hover {
+                background: linear-gradient(135deg, #0a58ca, #084298);
+                transform: translateY(-2px);
+                box-shadow: 0 8px 24px rgba(13,110,253,0.4);
+            }
+
+            .submit-btn:disabled {
+                background: #333;
+                color: #666;
+                cursor: not-allowed;
+                transform: none;
+                box-shadow: none;
+            }
+
+        .features {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+            justify-content: center;
+        }
+
+        .feature-tag {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 12px;
+            color: #adb5bd;
+        }
+
+        .alert-custom {
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .alert-success-custom {
+            background: rgba(25, 135, 84, 0.15);
+            border: 1px solid rgba(25, 135, 84, 0.4);
+            color: #75b798;
+        }
+
+        .alert-danger-custom {
+            background: rgba(220, 53, 69, 0.15);
+            border: 1px solid rgba(220, 53, 69, 0.4);
+            color: #ea868f;
+        }
+
+        .progress-bar-wrap {
+            display: none;
+            margin-top: 16px;
+        }
+
+        .progress {
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255,255,255,0.1);
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #0d6efd, #4dabf7);
+            border-radius: 3px;
+            animation: progressAnim 1.5s ease-in-out infinite;
+        }
+
+        @@keyframes progressAnim {
+            0% {
+                width: 0%;
+            }
+
+            50% {
+                width: 70%;
+            }
+
+            100% {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="brand">
+        <h1>📄 PDF Manager</h1>
+        <p>Upload, View, Extract & Screenshot PDF Pages</p>
+    </div>
+
+    <div class="card">
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert-custom alert-success-custom">
+                ✅ @TempData["Success"]
+            </div>
+        }
+
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert-custom alert-danger-custom">
+                ❌ @TempData["Error"]
+            </div>
+        }
+
+        <form asp-action="Upload" asp-controller="Pdf"
+              method="post" enctype="multipart/form-data"
+              id="uploadForm">
+
+            <div class="upload-zone"
+                 id="uploadZone"
+                 onclick="document.getElementById('pdfInput').click()"
+                 ondragover="handleDragOver(event)"
+                 ondragleave="handleDragLeave(event)"
+                 ondrop="handleDrop(event)">
+                <span class="upload-icon">📂</span>
+                <h5>Click or Drag & Drop PDF</h5>
+                <p>Maximum file size: 50MB</p>
+            </div>
+
+            <input type="file"
+                   id="pdfInput"
+                   name="PdfFile"
+                   accept=".pdf"
+                   style="display:none"
+                   onchange="handleFileSelect(this)">
+
+            <div class="file-info" id="fileInfo">
+                📄 <span id="fileName">No file selected</span>
+            </div>
+
+            <div class="progress-bar-wrap" id="progressWrap">
+                <div class="progress">
+                    <div class="progress-bar"></div>
+                </div>
+                <p style="color:#868e96; font-size:12px; margin-top:8px; text-align:center">
+                    Uploading...
+                </p>
+            </div>
+
+            <button type="submit"
+                    class="submit-btn"
+                    id="submitBtn"
+                    disabled>
+                🚀 Upload & Open PDF
+            </button>
+
+        </form>
+
+        <div class="features">
+            <span class="feature-tag">👁️ PDF Viewer</span>
+            <span class="feature-tag">✂️ Extract Pages</span>
+            <span class="feature-tag">📸 Screenshot</span>
+            <span class="feature-tag">🗑️ Delete</span>
+        </div>
+
+    </div>
+
+    <script>
+        function handleFileSelect(input) {
+            if (input.files && input.files[0]) {
+                showFile(input.files[0]);
+            }
+        }
+
+        function showFile(file) {
+            if (!file.name.endsWith('.pdf')) {
+                alert('Only PDF files allowed!');
+                return;
+            }
+            document.getElementById('fileName').textContent =
+                file.name + ' (' + (file.size / 1024 / 1024).toFixed(2) + ' MB)';
+            document.getElementById('fileInfo').style.display = 'flex';
+            document.getElementById('submitBtn').disabled = false;
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            document.getElementById('uploadZone').classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            document.getElementById('uploadZone').classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            document.getElementById('uploadZone').classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                document.getElementById('pdfInput').files = dt.files;
+                showFile(file);
+            }
+        }
+
+        document.getElementById('uploadForm').onsubmit = function () {
+            document.getElementById('progressWrap').style.display = 'block';
+            document.getElementById('submitBtn').disabled = true;
+            document.getElementById('submitBtn').textContent = '⏳ Uploading...';
+        };
+    </script>
+
+</body>
+</html>
