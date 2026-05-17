@@ -19,9 +19,12 @@ namespace PdfManager.Services
             _env = env;
             _configuration = configuration;
 
-            // Azure Blob Storage connect karo
-            var connectionString = _configuration["AzureStorage__ConnectionString"];
-            var containerName = _configuration["AzureStorage:ContainerName"] ?? "uploads";
+            var connectionString = configuration["AzureStorage__ConnectionString"]
+                ?? configuration["AzureStorage:ConnectionString"]
+                ?? throw new InvalidOperationException(
+                    "Azure Storage connection string not found!");
+
+            var containerName = configuration["AzureStorage:ContainerName"] ?? "uploads";
 
             _containerClient = new BlobContainerClient(connectionString, containerName);
             _containerClient.CreateIfNotExists(PublicAccessType.Blob);
