@@ -218,7 +218,8 @@
             'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
         // PDF URL
-        const pdfUrl = encodeURI('/uploads/@fileName');
+        // const pdfUrl = encodeURI('/uploads/@fileName');
+        const pdfUrl = '@ViewBag.PdfUrl';
 
         let pdfDoc = null;
         let currentPage = 1;
